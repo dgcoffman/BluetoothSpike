@@ -16,16 +16,16 @@ class ViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDe
     var bluetoothReady = false;
     var centralManager:CBCentralManager!
     var connectedDevice:CBPeripheral! // ! means implicitly unwrapper optional
+    var jawboneUUID = "EEC0756D-6EC2-BF6F-6355-90430D968088"
+    var jawboneService = "0012"
+    var deviceInfoService = "180A"
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
-        
-        StatusBox.text = "Loading..."
-        
+                
         startUpCentralManager();
     }
-
+    
     func startUpCentralManager() {
         centralManager = CBCentralManager(delegate: self, queue: nil)
     }
@@ -35,29 +35,22 @@ class ViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDe
     //Tried to simplify with a function below but it was crashing
     func centralManagerDidUpdateState(central: CBCentralManager!) {
         
-        println("checking state")
-        StatusBox.text = StatusBox.text + ("\nchecking state")
+        logMessage("checking state")
         
         switch(central.state) {
-            case .PoweredOff:
-                println("Device is powered off")
-                StatusBox.text = StatusBox.text + ("\nDevice is powered off")
-            case .PoweredOn:
-                println("Device is powered on and ready")
-                StatusBox.text = StatusBox.text + ("\nDevice is powered on and ready")
-                bluetoothReady = true
-            case .Resetting:
-                println("Device is currently resetting")
-                StatusBox.text = StatusBox.text + ("\nDevice is currently resetting")
-            case .Unauthorized:
-                println("Device is not authorized to use this bluethoth device")
-                StatusBox.text = StatusBox.text + ("\nDevice is not authoreized to use this bluetooth device")
-            case .Unknown:
-                println("Corebluthooth BLE state is unknown")
-                StatusBox.text = StatusBox.text + ("\nCore Bluretooth BLE state is unknown")
-            case .Unsupported:
-                println("This device is not supported")
-                StatusBox.text = StatusBox.text + ("\nThis device is not supported")
+        case .PoweredOff:
+            logMessage("Device is powered off")
+        case .PoweredOn:
+            logMessage("Device is powered on and ready")
+            bluetoothReady = true
+        case .Resetting:
+            logMessage("Device is currently resetting")
+        case .Unauthorized:
+            logMessage("Device is not authorized to use this bluethoth device")
+        case .Unknown:
+            logMessage("Corebluethooth BLE state is unknown")
+        case .Unsupported:
+            logMessage("This device is not supported")
         }
         
         if bluetoothReady {
@@ -65,31 +58,51 @@ class ViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDe
         }
     }
     
-// Tried using this function above but it was intermitantly crashing with an (lldb) message
-//    func refreshStatusBox(line: String) {
-//        StatusBox.text = StatusBox.text + "\n\(line)"
-//    }
-
+    func logMessage(message: String) {
+        println(message)
+        StatusBox.text = StatusBox.text + "\n\(message)"
+    }
+    
     func discoverDevices() {
-        println("Currently attempting to discover what devices are available")
+        logMessage("Currently attempting to discover what devices are available")
         centralManager.scanForPeripheralsWithServices(nil, options: nil)
     }
-
+    
     func centralManager(central: CBCentralManager!, didDiscoverPeripheral peripheral: CBPeripheral!, advertisementData: [NSObject : AnyObject]!, RSSI: NSNumber!) {
-                println("discovered a device \(peripheral.identifier)")
-                centralManager.stopScan()
-                connectedDevice = peripheral
-                peripheral.delegate = self
-                centralManager.connectPeripheral(peripheral, options: nil)
+        logMessage("discovered a device \(peripheral.identifier.description) \(peripheral.name)")
+        if(peripheral.identifier.UUIDString == jawboneUUID){
+            connectedDevice = peripheral
+            peripheral.delegate = self
+            centralManager.connectPeripheral(peripheral, options: nil)
+        }
     }
     
     func centralManager(central: CBCentralManager!, didConnectPeripheral peripheral: CBPeripheral!) {
-        println("Connected to peripheral")
+        logMessage("Found:  \(peripheral.name)")
+        centralManager.stopScan()
+        logMessage("Stopped scanning for devices. \nDiscovering services.")
+        peripheral.discoverServices(nil)
     }
-
+    
+    func peripheral(peripheral: CBPeripheral!, didDiscoverServices error: NSError!) {
+        for service in peripheral.services {
+            logMessage("We discovered a service \(service.UUID) on \(peripheral.name)")
+            if(service.UUID.description == jawboneService ){
+                logMessage("found device info about \(peripheral.name)")
+                peripheral.discoverCharacteristics(nil, forService: service as CBService)
+            }
+            
+        }
+    }
+    
+    func peripheral(peripheral: CBPeripheral!, didDiscoverCharacteristicsForService service: CBService!, error: NSError!) {
+        
+        logMessage("found service info about \(service)")
+        
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 }
 
