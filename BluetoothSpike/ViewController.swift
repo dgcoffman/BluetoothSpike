@@ -16,9 +16,9 @@ class ViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDe
     var bluetoothReady = false;
     var centralManager:CBCentralManager!
     var connectedDevice:CBPeripheral! // ! means implicitly unwrapper optional
-    var jawboneUUID = "EEC0756D-6EC2-BF6F-6355-90430D968088"
-    var jawboneService = "0012"
-    var deviceInfoService = "180A"
+    var jawboneUUID = "7A6F7D64-39E0-9C2A-5AF4-2663B244E04E"
+    var jawboneServiceUUID = "F7C9BA7E-6658-4390-B53C-1DE5E1453654"
+    var someChar = "180A"
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -69,7 +69,7 @@ class ViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDe
     }
     
     func centralManager(central: CBCentralManager!, didDiscoverPeripheral peripheral: CBPeripheral!, advertisementData: [NSObject : AnyObject]!, RSSI: NSNumber!) {
-        logMessage("discovered a device \(peripheral.identifier.description) \(peripheral.name)")
+        logMessage("discovered device \(peripheral.name)")
         if(peripheral.identifier.UUIDString == jawboneUUID){
             connectedDevice = peripheral
             peripheral.delegate = self
@@ -87,8 +87,8 @@ class ViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDe
     func peripheral(peripheral: CBPeripheral!, didDiscoverServices error: NSError!) {
         for service in peripheral.services {
             logMessage("We discovered a service \(service.UUID) on \(peripheral.name)")
-            if(service.UUID.description == jawboneService ){
-                logMessage("found device info about \(peripheral.name)")
+            if(service.UUID.description == jawboneServiceUUID ){
+                logMessage("Inspecting characteristics on device")
                 peripheral.discoverCharacteristics(nil, forService: service as CBService)
             }
             
@@ -96,10 +96,11 @@ class ViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDe
     }
     
     func peripheral(peripheral: CBPeripheral!, didDiscoverCharacteristicsForService service: CBService!, error: NSError!) {
-        
-        logMessage("found service info about \(service)")
-        
+        for char in service.characteristics {
+            println("Found characteristic \(char)")
+        }
     }
+
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
